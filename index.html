@@ -9,53 +9,76 @@
 body{
 margin:0;
 font-family:Arial;
-background:linear-gradient(#ffb6e6,#d896ff);
+background:linear-gradient(#ffb6e6,#d291ff);
 display:flex;
 flex-direction:column;
 align-items:center;
-color:white;
+min-height:100vh;
+overflow:hidden;
 }
 
 h1{
+color:white;
 font-size:60px;
-margin:20px 0 10px;
-text-shadow:0 0 15px hotpink;
+margin-top:20px;
+text-shadow:0 0 20px #ff00ff;
 }
 
 .top{
 width:90%;
 display:flex;
 justify-content:space-between;
+color:white;
 font-size:24px;
 font-weight:bold;
-margin-bottom:10px;
+margin-bottom:20px;
 }
 
-.board{
+#board{
 display:grid;
-grid-template-columns:repeat(8,1fr);
+grid-template-columns:repeat(8,75px);
+grid-template-rows:repeat(8,75px);
 gap:4px;
-background:#2b0b52;
-padding:8px;
+background:#2a0050;
+padding:10px;
 border-radius:25px;
+box-shadow:0 0 25px #ff00ff;
 touch-action:none;
 }
 
 .candy{
-width:42px;
-height:42px;
+width:75px;
+height:75px;
 border-radius:50%;
+cursor:pointer;
+transition:0.2s;
 }
 
 .red{background:#ff4d4d;}
-.blue{background:#4da6ff;}
+.blue{background:#4d9cff;}
 .green{background:#4dff88;}
 .yellow{background:#ffe44d;}
-.purple{background:#c44dff;}
-.orange{background:#ff994d;}
+.purple{background:#c04dff;}
+.orange{background:#ff9a4d;}
 
 .selected{
-outline:4px solid white;
+outline:5px solid white;
+transform:scale(1.1);
+}
+
+@media(max-width:700px){
+#board{
+grid-template-columns:repeat(8,40px);
+grid-template-rows:repeat(8,40px);
+}
+
+.candy{
+width:40px;
+height:40px;
+}
+h1{
+font-size:40px;
+}
 }
 </style>
 </head>
@@ -69,26 +92,22 @@ outline:4px solid white;
 <div>Score: <span id="score">0</span></div>
 </div>
 
-<div class="board" id="board"></div>
+<div id="board"></div>
 
 <script>
 const board=document.getElementById("board");
+const scoreText=document.getElementById("score");
+const movesText=document.getElementById("moves");
+
 const width=8;
+const colors=["red","blue","green","yellow","purple","orange"];
 
-const colors=[
-"red",
-"blue",
-"green",
-"yellow",
-"purple",
-"orange"
-];
-
-let candies=[];
+let squares=[];
 let score=0;
 let moves=20;
 
 let firstCandy=null;
+let secondCandy=null;
 
 function randomColor(){
 return colors[Math.floor(Math.random()*colors.length)];
@@ -96,91 +115,80 @@ return colors[Math.floor(Math.random()*colors.length)];
 
 function createBoard(){
 
-for(let i=0;i<64;i++){
+for(let i=0;i<width*width;i++){
 
 const candy=document.createElement("div");
-candy.classList.add("candy");
 
 let color=randomColor();
+
+candy.classList.add("candy");
 candy.classList.add(color);
 
-candy.setAttribute("data-id",i);
+candy.setAttribute("draggable",true);
+candy.setAttribute("id",i);
 
 board.appendChild(candy);
-candies.push(candy);
+squares.push(candy);
 
-candy.addEventListener("click",handleClick);
+candy.addEventListener("click",selectCandy);
+
+}
 }
 
-setInterval(gameLoop,200);
-}
-
-function handleClick(){
+function selectCandy(){
 
 if(moves<=0)return;
 
-if(!firstCandy){
-
+if(firstCandy==null){
 firstCandy=this;
 this.classList.add("selected");
+}
+else{
 
-}else{
+secondCandy=this;
 
-let secondCandy=this;
-
-swapCandies(firstCandy,secondCandy);
+swapCandies();
 
 firstCandy.classList.remove("selected");
+
 firstCandy=null;
+secondCandy=null;
+
 }
 }
 
-function swapCandies(c1,c2){
+function swapCandies(){
 
-const id1=parseInt(c1.dataset.id);
-const id2=parseInt(c2.dataset.id);
+const firstColor=[...firstCandy.classList][1];
+const secondColor=[...secondCandy.classList][1];
 
-const validMoves=[
-id1-1,
-id1+1,
-id1-width,
-id1+width
-];
+firstCandy.classList.remove(firstColor);
+firstCandy.classList.add(secondColor);
 
-if(!validMoves.includes(id2)) return;
+secondCandy.classList.remove(secondColor);
+secondCandy.classList.add(firstColor);
 
-const color1=getColor(c1);
-const color2=getColor(c2);
+const validMove=checkMatches();
 
-setColor(c1,color2);
-setColor(c2,color1);
-
-if(checkMatches()){
+if(validMove){
 
 moves--;
-document.getElementById("moves").innerText=moves;
+movesText.innerText=moves;
 
-}else{
+setTimeout(()=>{
+dropCandies();
+},200);
 
-setColor(c1,color1);
-setColor(c2,color2);
 }
+else{
+
+firstCandy.classList.remove(secondColor);
+firstCandy.classList.add(firstColor);
+
+secondCandy.classList.remove(firstColor);
+secondCandy.classList.add(secondColor);
+
 }
-
-function getColor(candy){
-
-for(let color of colors){
-
-if(candy.classList.contains(color)){
-return color;
-}
-}
-}
-
-function setColor(candy,color){
-
-candy.className="candy";
-candy.classList.add(color);
 }
 
 function checkMatches(){
@@ -189,86 +197,94 @@ let matched=false;
 
 for(let i=0;i<64;i++){
 
-const row=[i,i+1,i+2];
+const rowMatch=[i,i+1,i+2];
 
-if(i%8>5) continue;
+const decidedColor=squares[i].classList[1];
 
-const color=getColor(candies[i]);
+const invalid=[6,7,14,15,22,23,30,31,38,39,46,47,54,55];
 
-if(
-color &&
-getColor(candies[i+1])===color &&
-getColor(candies[i+2])===color
-){
+if(invalid.includes(i))continue;
 
-row.forEach(index=>{
-candies[index].className="candy";
+if(rowMatch.every(index=>squares[index].classList[1]===decidedColor)){
+
+matched=true;
+
+rowMatch.forEach(index=>{
+squares[index].className="candy";
+score+=10;
 });
 
-score+=10;
-matched=true;
 }
 }
 
 for(let i=0;i<48;i++){
 
-const col=[i,i+8,i+16];
+const columnMatch=[i,i+8,i+16];
 
-const color=getColor(candies[i]);
+const decidedColor=squares[i].classList[1];
 
-if(
-color &&
-getColor(candies[i+8])===color &&
-getColor(candies[i+16])===color
-){
+if(columnMatch.every(index=>squares[index].classList[1]===decidedColor)){
 
-col.forEach(index=>{
-candies[index].className="candy";
+matched=true;
+
+columnMatch.forEach(index=>{
+squares[index].className="candy";
+score+=10;
 });
 
-score+=10;
-matched=true;
 }
 }
 
-document.getElementById("score").innerText=score;
+scoreText.innerText=score;
 
 return matched;
 }
 
-function moveDown(){
+function dropCandies(){
 
 for(let i=55;i>=0;i--){
 
-if(candies[i+8].className==="candy"){
+if(squares[i+8].classList.length===1){
 
-candies[i+8].className=candies[i].className;
-candies[i].className="candy";
+squares[i+8].className=squares[i].className;
+
+squares[i].className="candy";
+
 }
 }
 
 for(let i=0;i<8;i++){
 
-if(candies[i].className==="candy"){
+if(squares[i].classList.length===1){
 
-candies[i].classList.add(randomColor());
-}
-}
-}
+let color=randomColor();
 
-function gameLoop(){
+squares[i].classList.add(color);
+
+}
+}
 
 checkMatches();
-moveDown();
 
 if(moves<=0){
 
 setTimeout(()=>{
+
 alert("Game Over! Score: "+score);
+
 location.reload();
+
 },500);
+
 }
 }
+
+window.setInterval(()=>{
+
+checkMatches();
+dropCandies();
+
+},300);
 
 createBoard();
 </script>
