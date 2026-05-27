@@ -54,4 +54,314 @@ cursor:pointer;
 
 .red{background:#ff4d4d;}
 .blue{background:#4da6ff;}
-.green{background:#
+.green{background:#4dff88;}
+.yellow{background:#ffe44d;}
+.purple{background:#c44dff;}
+.orange{background:#ff944d;}
+
+.selected{
+outline:4px solid white;
+transform:scale(1.08);
+}
+
+#popup{
+position:fixed;
+top:50%;
+left:50%;
+transform:translate(-50%,-50%);
+background:white;
+padding:30px;
+border-radius:25px;
+display:none;
+text-align:center;
+z-index:10;
+box-shadow:0 0 25px black;
+}
+
+#popup h2{
+margin:0;
+color:#ff1493;
+}
+
+#popup button{
+margin-top:20px;
+padding:12px 25px;
+border:none;
+background:#ff1493;
+color:white;
+border-radius:12px;
+font-size:18px;
+}
+
+.title{
+font-size:40px;
+color:white;
+margin-top:10px;
+text-shadow:0 0 10px #ff00ff;
+}
+
+.target{
+font-size:20px;
+color:white;
+margin-bottom:10px;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="title">🍬 Candy Blast</div>
+
+<div class="topbar">
+<div>Moves: <span id="moves">10</span></div>
+<div>Score: <span id="score">0</span></div>
+</div>
+
+<div class="target">
+Target: 100 points
+</div>
+
+<div id="board"></div>
+
+<div id="popup">
+<h2 id="result"></h2>
+<button onclick="restartGame()">Play Again</button>
+</div>
+
+<script>
+
+const board = document.getElementById("board");
+
+const width = 8;
+
+const colors = [
+"red",
+"blue",
+"green",
+"yellow",
+"purple",
+"orange"
+];
+
+let squares = [];
+
+let score = 0;
+let moves = 10;
+
+let firstCandy = null;
+let secondCandy = null;
+
+function createBoard(){
+
+board.innerHTML = "";
+squares = [];
+
+for(let i=0;i<64;i++){
+
+const square = document.createElement("div");
+
+const color =
+colors[Math.floor(Math.random()*colors.length)];
+
+square.classList.add("candy");
+square.classList.add(color);
+
+square.setAttribute("id",i);
+
+board.appendChild(square);
+
+squares.push(square);
+
+square.addEventListener("click",()=>selectCandy(square));
+
+}
+
+}
+
+function selectCandy(square){
+
+if(moves<=0) return;
+
+if(firstCandy===null){
+
+firstCandy = square;
+square.classList.add("selected");
+
+}else{
+
+secondCandy = square;
+
+swapCandy();
+
+firstCandy.classList.remove("selected");
+
+firstCandy = null;
+secondCandy = null;
+
+moves--;
+
+document.getElementById("moves").innerText = moves;
+
+setTimeout(()=>{
+
+checkMatches();
+
+if(score>=100){
+
+showPopup("🎉 YOU WIN!");
+
+}else if(moves<=0){
+
+showPopup("😢 YOU LOSE");
+
+}
+
+},300);
+
+}
+
+}
+
+function swapCandy(){
+
+const color1 = getColor(firstCandy);
+const color2 = getColor(secondCandy);
+
+setColor(firstCandy,color2);
+setColor(secondCandy,color1);
+
+}
+
+function getColor(square){
+
+return colors.find(c=>square.classList.contains(c));
+
+}
+
+function setColor(square,color){
+
+colors.forEach(c=>square.classList.remove(c));
+
+square.classList.add(color);
+
+}
+
+function checkMatches(){
+
+checkRows();
+checkColumns();
+moveDown();
+
+}
+
+function checkRows(){
+
+for(let i=0;i<61;i++){
+
+const invalid = [6,7,14,15,22,23,30,31,38,39,46,47,54,55];
+
+if(invalid.includes(i)) continue;
+
+const row = [i,i+1,i+2];
+
+const color = getColor(squares[i]);
+
+if(color && row.every(index=>getColor(squares[index])===color)){
+
+row.forEach(index=>{
+
+const random =
+colors[Math.floor(Math.random()*colors.length)];
+
+setColor(squares[index],random);
+
+});
+
+score += 10;
+
+document.getElementById("score").innerText = score;
+
+}
+
+}
+
+}
+
+function checkColumns(){
+
+for(let i=0;i<48;i++){
+
+const column = [i,i+8,i+16];
+
+const color = getColor(squares[i]);
+
+if(color && column.every(index=>getColor(squares[index])===color)){
+
+column.forEach(index=>{
+
+const random =
+colors[Math.floor(Math.random()*colors.length)];
+
+setColor(squares[index],random);
+
+});
+
+score += 10;
+
+document.getElementById("score").innerText = score;
+
+}
+
+}
+
+}
+
+function moveDown(){
+
+for(let i=55;i>=0;i--){
+
+if(getColor(squares[i+8])===""){
+
+setColor(squares[i+8],getColor(squares[i]));
+
+const random =
+colors[Math.floor(Math.random()*colors.length)];
+
+setColor(squares[i],random);
+
+}
+
+}
+
+}
+
+function showPopup(text){
+
+document.getElementById("popup").style.display="block";
+
+document.getElementById("result").innerText=text;
+
+}
+
+function restartGame(){
+
+score=0;
+moves=10;
+
+document.getElementById("score").innerText=score;
+
+document.getElementById("moves").innerText=moves;
+
+document.getElementById("popup").style.display="none";
+
+createBoard();
+
+}
+
+createBoard();
+
+</script>
+
+</body>
+</html>
