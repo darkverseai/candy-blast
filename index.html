@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Candy Blast</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <style>
+    body{
+      margin:0;
+      padding:0;
+      background:#120024;
+      font-family:Arial;
+      color:white;
+      text-align:center;
+    }
+
+    h1{
+      padding:20px;
+      color:#00f7ff;
+      text-shadow:0 0 15px #00f7ff;
+    }
+
+    #score{
+      font-size:24px;
+      margin-bottom:15px;
+    }
+
+    .board{
+      width:320px;
+      height:320px;
+      margin:auto;
+      display:grid;
+      grid-template-columns:repeat(8,1fr);
+      gap:4px;
+      background:#222;
+      padding:6px;
+      border-radius:20px;
+      box-shadow:0 0 20px cyan;
+    }
+
+    .candy{
+      width:35px;
+      height:35px;
+      border-radius:10px;
+      cursor:pointer;
+    }
+
+    .red{background:#ff4d4d;}
+    .blue{background:#4da6ff;}
+    .green{background:#4dff88;}
+    .yellow{background:#ffe44d;}
+    .purple{background:#c44dff;}
+    .orange{background:#ff944d;}
+
+  </style>
+</head>
+
+<body>
+
+  <h1>🍬 Candy Blast</h1>
+
+  <div id="score">Score: 0</div>
+
+  <div class="board" id="board"></div>
+
+  <script>
+
+    const board = document.getElementById("board");
+    const scoreText = document.getElementById("score");
+
+    const colors = [
+      "red",
+      "blue",
+      "green",
+      "yellow",
+      "purple",
+      "orange"
+    ];
+
+    let score = 0;
+
+    function createBoard(){
+
+      for(let i=0;i<64;i++){
+
+        const candy = document.createElement("div");
+
+        candy.classList.add("candy");
+
+        const randomColor =
+          colors[Math.floor(Math.random()*colors.length)];
+
+        candy.classList.add(randomColor);
+
+        candy.addEventListener("click", () => {
+          popCandy(candy);
+        });
+
+        board.appendChild(candy);
+      }
+    }
+
+    function popCandy(candy){
+
+      if(candy.style.visibility === "hidden") return;
+
+      candy.style.visibility = "hidden";
+
+      score += 10;
+
+      scoreText.innerText = "Score: " + score;
+    }
+
+    createBoard();
+
+  </script>
+
+</body>
+</html>
