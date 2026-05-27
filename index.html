@@ -1,29 +1,37 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Candy Blast Ultimate</title>
 
 <style>
 
 body{
 margin:0;
-background:#f7b3e3;
+padding:0;
+background:linear-gradient(#ffb6e6,#9d4dff);
 font-family:Arial;
-text-align:center;
+display:flex;
+flex-direction:column;
+align-items:center;
 overflow:hidden;
 }
 
 h1{
 color:white;
 font-size:45px;
-text-shadow:0 0 10px #ff00ff;
+margin:15px;
+text-shadow:0 0 15px #ff00ff;
 }
 
 .top{
+width:90%;
+max-width:500px;
 display:flex;
-justify-content:space-around;
+justify-content:space-between;
 color:white;
-font-size:28px;
+font-size:24px;
 font-weight:bold;
 margin-bottom:10px;
 }
@@ -33,19 +41,20 @@ width:95vw;
 max-width:500px;
 height:95vw;
 max-height:500px;
-margin:auto;
 display:grid;
 grid-template-columns:repeat(8,1fr);
 gap:5px;
 background:#24104d;
 padding:8px;
 border-radius:25px;
+box-shadow:0 0 25px #ff00ff;
 }
 
 .candy{
 width:100%;
 aspect-ratio:1;
 border-radius:18px;
+transition:0.2s;
 }
 
 .red{background:#ff4d4d;}
@@ -55,6 +64,40 @@ border-radius:18px;
 .purple{background:#c44dff;}
 .orange{background:#ff944d;}
 
+.selected{
+outline:4px solid white;
+transform:scale(1.08);
+}
+
+#popup{
+position:fixed;
+top:50%;
+left:50%;
+transform:translate(-50%,-50%);
+background:white;
+padding:30px;
+border-radius:25px;
+display:none;
+z-index:100;
+text-align:center;
+box-shadow:0 0 30px black;
+}
+
+#popup h2{
+color:#ff1493;
+margin:0;
+}
+
+#popup button{
+margin-top:20px;
+padding:12px 25px;
+border:none;
+background:#ff1493;
+color:white;
+border-radius:12px;
+font-size:18px;
+}
+
 </style>
 </head>
 
@@ -63,15 +106,24 @@ border-radius:18px;
 <h1>🍬 Candy Blast</h1>
 
 <div class="top">
-<div>Moves: <span id="moves">15</span></div>
+<div>Moves: <span id="moves">20</span></div>
 <div>Score: <span id="score">0</span></div>
 </div>
 
 <div id="board"></div>
 
+<div id="popup">
+<h2 id="popupText"></h2>
+<button onclick="restartGame()">
+Play Again
+</button>
+</div>
+
 <script>
 
 const board = document.getElementById("board");
+
+const width = 8;
 
 const colors = [
 "red",
@@ -82,14 +134,12 @@ const colors = [
 "orange"
 ];
 
-const width = 8;
-
 let squares = [];
 
 let score = 0;
-let moves = 15;
+let moves = 20;
 
-let first = null;
+let firstCandy = null;
 
 function createBoard(){
 
@@ -100,11 +150,11 @@ for(let i=0;i<64;i++){
 
 const square=document.createElement("div");
 
-const color =
+const randomColor=
 colors[Math.floor(Math.random()*colors.length)];
 
 square.classList.add("candy");
-square.classList.add(color);
+square.classList.add(randomColor);
 
 square.id=i;
 
@@ -112,41 +162,78 @@ board.appendChild(square);
 
 squares.push(square);
 
-square.addEventListener("click",()=>handleClick(i));
+square.addEventListener("click",()=>{
+selectCandy(i);
+});
 
 }
 
 }
 
-function handleClick(id){
+function selectCandy(id){
 
-if(first===null){
+if(moves<=0) return;
 
-first=id;
-squares[id].style.outline="4px solid white";
+if(firstCandy===null){
+
+firstCandy=id;
+
+squares[id].classList.add("selected");
 
 }else{
 
-swap(first,id);
+if(isValidMove(firstCandy,id)){
 
-squares[first].style.outline="none";
-
-first=null;
+swapCandy(firstCandy,id);
 
 moves--;
 
 document.getElementById("moves").innerText=moves;
 
-checkAll();
+setTimeout(()=>{
+
+const matched =
+checkMatches();
+
+if(!matched){
+
+swapCandy(firstCandy,id);
+
+}
+
+dropCandies();
+
+checkGame();
+
+},200);
+
+}
+
+squares[firstCandy].classList.remove("selected");
+
+firstCandy=null;
 
 }
 
 }
 
-function swap(a,b){
+function isValidMove(a,b){
 
-let colorA=getColor(a);
-let colorB=getColor(b);
+const valid=[
+a-1,
+a+1,
+a-width,
+a+width
+];
+
+return valid.includes(b);
+
+}
+
+function swapCandy(a,b){
+
+const colorA=getColor(a);
+const colorB=getColor(b);
 
 setColor(a,colorB);
 setColor(b,colorA);
@@ -167,36 +254,15 @@ colors.forEach(c=>
 squares[id].classList.remove(c)
 );
 
+if(color){
 squares[id].classList.add(color);
-
-}
-
-function checkAll(){
-
-checkRows();
-checkColumns();
-
-if(score>=100){
-
-setTimeout(()=>{
-alert("🎉 YOU WIN!");
-restart();
-},200);
-
-}
-
-if(moves<=0 && score<100){
-
-setTimeout(()=>{
-alert("😢 YOU LOSE");
-restart();
-},200);
-
 }
 
 }
 
-function checkRows(){
+function checkMatches(){
+
+let matched=false;
 
 for(let i=0;i<61;i++){
 
@@ -212,28 +278,22 @@ const row=[i,i+1,i+2];
 
 const color=getColor(i);
 
-if(row.every(index=>getColor(index)===color)){
+if(color &&
+row.every(index=>getColor(index)===color)){
+
+matched=true;
 
 row.forEach(index=>{
 
-const random=
-colors[Math.floor(Math.random()*colors.length)];
-
-setColor(index,random);
+setColor(index,"");
 
 });
 
 score += 10;
 
-document.getElementById("score").innerText=score;
-
 }
 
 }
-
-}
-
-function checkColumns(){
 
 for(let i=0;i<48;i++){
 
@@ -241,35 +301,97 @@ const col=[i,i+8,i+16];
 
 const color=getColor(i);
 
-if(col.every(index=>getColor(index)===color)){
+if(color &&
+col.every(index=>getColor(index)===color)){
+
+matched=true;
 
 col.forEach(index=>{
 
-const random=
-colors[Math.floor(Math.random()*colors.length)];
-
-setColor(index,random);
+setColor(index,"");
 
 });
 
 score += 10;
 
+}
+
+}
+
 document.getElementById("score").innerText=score;
 
+return matched;
+
 }
+
+function dropCandies(){
+
+for(let i=55;i>=0;i--){
+
+if(getColor(i+8)===""){
+
+setColor(i+8,getColor(i));
+
+setColor(i,"");
 
 }
 
 }
 
-function restart(){
+for(let i=0;i<8;i++){
+
+if(getColor(i)===""){
+
+const randomColor=
+colors[Math.floor(Math.random()*colors.length)];
+
+setColor(i,randomColor);
+
+}
+
+}
+
+setTimeout(()=>{
+
+checkMatches();
+
+},150);
+
+}
+
+function checkGame(){
+
+if(score>=100){
+
+showPopup("🎉 YOU WIN!");
+
+}
+
+if(moves<=0 && score<100){
+
+showPopup("😢 YOU LOSE");
+
+}
+
+}
+
+function showPopup(text){
+
+document.getElementById("popup").style.display="block";
+
+document.getElementById("popupText").innerText=text;
+
+}
+
+function restartGame(){
 
 score=0;
-moves=15;
+moves=20;
 
 document.getElementById("score").innerText=0;
+document.getElementById("moves").innerText=20;
 
-document.getElementById("moves").innerText=15;
+document.getElementById("popup").style.display="none";
 
 createBoard();
 
