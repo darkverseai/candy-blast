@@ -1,37 +1,29 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Candy Blast Swipe</title>
 
 <style>
 
 body{
 margin:0;
-padding:0;
-background:linear-gradient(#ffb6e6,#b266ff);
+background:#f7b3e3;
 font-family:Arial;
-display:flex;
-flex-direction:column;
-align-items:center;
+text-align:center;
 overflow:hidden;
 }
 
 h1{
 color:white;
-font-size:50px;
-margin:15px;
-text-shadow:0 0 15px #ff00ff;
+font-size:45px;
+text-shadow:0 0 10px #ff00ff;
 }
 
 .top{
-width:90%;
-max-width:500px;
 display:flex;
-justify-content:space-between;
+justify-content:space-around;
 color:white;
-font-size:25px;
+font-size:28px;
 font-weight:bold;
 margin-bottom:10px;
 }
@@ -41,21 +33,19 @@ width:95vw;
 max-width:500px;
 height:95vw;
 max-height:500px;
-background:#24104d;
+margin:auto;
 display:grid;
 grid-template-columns:repeat(8,1fr);
 gap:5px;
+background:#24104d;
 padding:8px;
 border-radius:25px;
-box-shadow:0 0 25px #ff00ff;
-touch-action:none;
 }
 
 .candy{
 width:100%;
 aspect-ratio:1;
 border-radius:18px;
-transition:0.15s;
 }
 
 .red{background:#ff4d4d;}
@@ -64,32 +54,6 @@ transition:0.15s;
 .yellow{background:#ffe44d;}
 .purple{background:#c44dff;}
 .orange{background:#ff944d;}
-
-#popup{
-position:fixed;
-top:50%;
-left:50%;
-transform:translate(-50%,-50%);
-background:white;
-padding:30px;
-border-radius:25px;
-display:none;
-z-index:10;
-text-align:center;
-}
-
-#popup h2{
-color:#ff1493;
-}
-
-#popup button{
-padding:12px 25px;
-border:none;
-border-radius:12px;
-background:#ff1493;
-color:white;
-font-size:18px;
-}
 
 </style>
 </head>
@@ -105,16 +69,9 @@ font-size:18px;
 
 <div id="board"></div>
 
-<div id="popup">
-<h2 id="result"></h2>
-<button onclick="restartGame()">Play Again</button>
-</div>
-
 <script>
 
 const board = document.getElementById("board");
-
-const width = 8;
 
 const colors = [
 "red",
@@ -125,13 +82,14 @@ const colors = [
 "orange"
 ];
 
+const width = 8;
+
 let squares = [];
 
 let score = 0;
 let moves = 15;
 
-let startId = null;
-let endId = null;
+let first = null;
 
 function createBoard(){
 
@@ -142,89 +100,56 @@ for(let i=0;i<64;i++){
 
 const square=document.createElement("div");
 
-const color=
+const color =
 colors[Math.floor(Math.random()*colors.length)];
 
 square.classList.add("candy");
 square.classList.add(color);
 
-square.setAttribute("draggable",true);
-square.setAttribute("id",i);
+square.id=i;
 
 board.appendChild(square);
 
 squares.push(square);
 
-square.addEventListener("dragstart",dragStart);
-
-square.addEventListener("dragover",e=>e.preventDefault());
-
-square.addEventListener("drop",dragDrop);
-
-square.addEventListener("dragend",dragEnd);
+square.addEventListener("click",()=>handleClick(i));
 
 }
 
 }
 
-function dragStart(){
+function handleClick(id){
 
-startId=parseInt(this.id);
+if(first===null){
 
-}
+first=id;
+squares[id].style.outline="4px solid white";
 
-function dragDrop(){
+}else{
 
-endId=parseInt(this.id);
+swap(first,id);
 
-}
+squares[first].style.outline="none";
 
-function dragEnd(){
-
-const validMoves=[
-startId-1,
-startId+1,
-startId-width,
-startId+width
-];
-
-if(validMoves.includes(endId)){
-
-swapColors(startId,endId);
+first=null;
 
 moves--;
 
 document.getElementById("moves").innerText=moves;
 
-setTimeout(()=>{
-
-checkMatches();
-
-if(score>=100){
-
-showPopup("🎉 YOU WIN!");
-
-}
-
-if(moves<=0 && score<100){
-
-showPopup("😢 YOU LOSE");
-
-}
-
-},200);
+checkAll();
 
 }
 
 }
 
-function swapColors(id1,id2){
+function swap(a,b){
 
-const color1=getColor(id1);
-const color2=getColor(id2);
+let colorA=getColor(a);
+let colorB=getColor(b);
 
-setColor(id1,color2);
-setColor(id2,color1);
+setColor(a,colorB);
+setColor(b,colorA);
 
 }
 
@@ -246,10 +171,28 @@ squares[id].classList.add(color);
 
 }
 
-function checkMatches(){
+function checkAll(){
 
 checkRows();
 checkColumns();
+
+if(score>=100){
+
+setTimeout(()=>{
+alert("🎉 YOU WIN!");
+restart();
+},200);
+
+}
+
+if(moves<=0 && score<100){
+
+setTimeout(()=>{
+alert("😢 YOU LOSE");
+restart();
+},200);
+
+}
 
 }
 
@@ -259,8 +202,8 @@ for(let i=0;i<61;i++){
 
 const invalid=[
 6,7,14,15,22,23,
-30,31,38,39,46,
-47,54,55
+30,31,38,39,
+46,47,54,55
 ];
 
 if(invalid.includes(i)) continue;
@@ -294,13 +237,13 @@ function checkColumns(){
 
 for(let i=0;i<48;i++){
 
-const column=[i,i+8,i+16];
+const col=[i,i+8,i+16];
 
 const color=getColor(i);
 
-if(column.every(index=>getColor(index)===color)){
+if(col.every(index=>getColor(index)===color)){
 
-column.forEach(index=>{
+col.forEach(index=>{
 
 const random=
 colors[Math.floor(Math.random()*colors.length)];
@@ -319,15 +262,7 @@ document.getElementById("score").innerText=score;
 
 }
 
-function showPopup(text){
-
-document.getElementById("popup").style.display="block";
-
-document.getElementById("result").innerText=text;
-
-}
-
-function restartGame(){
+function restart(){
 
 score=0;
 moves=15;
@@ -335,8 +270,6 @@ moves=15;
 document.getElementById("score").innerText=0;
 
 document.getElementById("moves").innerText=15;
-
-document.getElementById("popup").style.display="none";
 
 createBoard();
 
