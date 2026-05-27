@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Candy Blast Pro</title>
+<title>Candy Blast Swipe</title>
 
 <style>
 
@@ -18,16 +18,22 @@ align-items:center;
 overflow:hidden;
 }
 
-.topbar{
-width:100%;
+h1{
+color:white;
+font-size:50px;
+margin:15px;
+text-shadow:0 0 15px #ff00ff;
+}
+
+.top{
+width:90%;
 max-width:500px;
 display:flex;
 justify-content:space-between;
-padding:15px;
-box-sizing:border-box;
 color:white;
+font-size:25px;
 font-weight:bold;
-font-size:22px;
+margin-bottom:10px;
 }
 
 #board{
@@ -35,21 +41,21 @@ width:95vw;
 max-width:500px;
 height:95vw;
 max-height:500px;
-background:#1f1147;
-padding:8px;
-border-radius:25px;
+background:#24104d;
 display:grid;
 grid-template-columns:repeat(8,1fr);
 gap:5px;
-box-shadow:0 0 25px #ff66ff;
+padding:8px;
+border-radius:25px;
+box-shadow:0 0 25px #ff00ff;
+touch-action:none;
 }
 
 .candy{
 width:100%;
 aspect-ratio:1;
 border-radius:18px;
-transition:0.2s;
-cursor:pointer;
+transition:0.15s;
 }
 
 .red{background:#ff4d4d;}
@@ -58,11 +64,6 @@ cursor:pointer;
 .yellow{background:#ffe44d;}
 .purple{background:#c44dff;}
 .orange{background:#ff944d;}
-
-.selected{
-outline:4px solid white;
-transform:scale(1.08);
-}
 
 #popup{
 position:fixed;
@@ -73,37 +74,21 @@ background:white;
 padding:30px;
 border-radius:25px;
 display:none;
-text-align:center;
 z-index:10;
-box-shadow:0 0 25px black;
+text-align:center;
 }
 
 #popup h2{
-margin:0;
 color:#ff1493;
 }
 
 #popup button{
-margin-top:20px;
 padding:12px 25px;
 border:none;
+border-radius:12px;
 background:#ff1493;
 color:white;
-border-radius:12px;
 font-size:18px;
-}
-
-.title{
-font-size:40px;
-color:white;
-margin-top:10px;
-text-shadow:0 0 10px #ff00ff;
-}
-
-.target{
-font-size:20px;
-color:white;
-margin-bottom:10px;
 }
 
 </style>
@@ -111,15 +96,11 @@ margin-bottom:10px;
 
 <body>
 
-<div class="title">🍬 Candy Blast</div>
+<h1>🍬 Candy Blast</h1>
 
-<div class="topbar">
-<div>Moves: <span id="moves">10</span></div>
+<div class="top">
+<div>Moves: <span id="moves">15</span></div>
 <div>Score: <span id="score">0</span></div>
-</div>
-
-<div class="target">
-Target: 100 points
 </div>
 
 <div id="board"></div>
@@ -147,61 +128,73 @@ const colors = [
 let squares = [];
 
 let score = 0;
-let moves = 10;
+let moves = 15;
 
-let firstCandy = null;
-let secondCandy = null;
+let startId = null;
+let endId = null;
 
 function createBoard(){
 
-board.innerHTML = "";
-squares = [];
+board.innerHTML="";
+squares=[];
 
 for(let i=0;i<64;i++){
 
-const square = document.createElement("div");
+const square=document.createElement("div");
 
-const color =
+const color=
 colors[Math.floor(Math.random()*colors.length)];
 
 square.classList.add("candy");
 square.classList.add(color);
 
+square.setAttribute("draggable",true);
 square.setAttribute("id",i);
 
 board.appendChild(square);
 
 squares.push(square);
 
-square.addEventListener("click",()=>selectCandy(square));
+square.addEventListener("dragstart",dragStart);
+
+square.addEventListener("dragover",e=>e.preventDefault());
+
+square.addEventListener("drop",dragDrop);
+
+square.addEventListener("dragend",dragEnd);
 
 }
 
 }
 
-function selectCandy(square){
+function dragStart(){
 
-if(moves<=0) return;
+startId=parseInt(this.id);
 
-if(firstCandy===null){
+}
 
-firstCandy = square;
-square.classList.add("selected");
+function dragDrop(){
 
-}else{
+endId=parseInt(this.id);
 
-secondCandy = square;
+}
 
-swapCandy();
+function dragEnd(){
 
-firstCandy.classList.remove("selected");
+const validMoves=[
+startId-1,
+startId+1,
+startId-width,
+startId+width
+];
 
-firstCandy = null;
-secondCandy = null;
+if(validMoves.includes(endId)){
+
+swapColors(startId,endId);
 
 moves--;
 
-document.getElementById("moves").innerText = moves;
+document.getElementById("moves").innerText=moves;
 
 setTimeout(()=>{
 
@@ -211,39 +204,45 @@ if(score>=100){
 
 showPopup("🎉 YOU WIN!");
 
-}else if(moves<=0){
+}
+
+if(moves<=0 && score<100){
 
 showPopup("😢 YOU LOSE");
 
 }
 
-},300);
+},200);
 
 }
 
 }
 
-function swapCandy(){
+function swapColors(id1,id2){
 
-const color1 = getColor(firstCandy);
-const color2 = getColor(secondCandy);
+const color1=getColor(id1);
+const color2=getColor(id2);
 
-setColor(firstCandy,color2);
-setColor(secondCandy,color1);
-
-}
-
-function getColor(square){
-
-return colors.find(c=>square.classList.contains(c));
+setColor(id1,color2);
+setColor(id2,color1);
 
 }
 
-function setColor(square,color){
+function getColor(id){
 
-colors.forEach(c=>square.classList.remove(c));
+return colors.find(c=>
+squares[id].classList.contains(c)
+);
 
-square.classList.add(color);
+}
+
+function setColor(id,color){
+
+colors.forEach(c=>
+squares[id].classList.remove(c)
+);
+
+squares[id].classList.add(color);
 
 }
 
@@ -251,7 +250,6 @@ function checkMatches(){
 
 checkRows();
 checkColumns();
-moveDown();
 
 }
 
@@ -259,28 +257,32 @@ function checkRows(){
 
 for(let i=0;i<61;i++){
 
-const invalid = [6,7,14,15,22,23,30,31,38,39,46,47,54,55];
+const invalid=[
+6,7,14,15,22,23,
+30,31,38,39,46,
+47,54,55
+];
 
 if(invalid.includes(i)) continue;
 
-const row = [i,i+1,i+2];
+const row=[i,i+1,i+2];
 
-const color = getColor(squares[i]);
+const color=getColor(i);
 
-if(color && row.every(index=>getColor(squares[index])===color)){
+if(row.every(index=>getColor(index)===color)){
 
 row.forEach(index=>{
 
-const random =
+const random=
 colors[Math.floor(Math.random()*colors.length)];
 
-setColor(squares[index],random);
+setColor(index,random);
 
 });
 
 score += 10;
 
-document.getElementById("score").innerText = score;
+document.getElementById("score").innerText=score;
 
 }
 
@@ -292,43 +294,24 @@ function checkColumns(){
 
 for(let i=0;i<48;i++){
 
-const column = [i,i+8,i+16];
+const column=[i,i+8,i+16];
 
-const color = getColor(squares[i]);
+const color=getColor(i);
 
-if(color && column.every(index=>getColor(squares[index])===color)){
+if(column.every(index=>getColor(index)===color)){
 
 column.forEach(index=>{
 
-const random =
+const random=
 colors[Math.floor(Math.random()*colors.length)];
 
-setColor(squares[index],random);
+setColor(index,random);
 
 });
 
 score += 10;
 
-document.getElementById("score").innerText = score;
-
-}
-
-}
-
-}
-
-function moveDown(){
-
-for(let i=55;i>=0;i--){
-
-if(getColor(squares[i+8])===""){
-
-setColor(squares[i+8],getColor(squares[i]));
-
-const random =
-colors[Math.floor(Math.random()*colors.length)];
-
-setColor(squares[i],random);
+document.getElementById("score").innerText=score;
 
 }
 
@@ -347,11 +330,11 @@ document.getElementById("result").innerText=text;
 function restartGame(){
 
 score=0;
-moves=10;
+moves=15;
 
-document.getElementById("score").innerText=score;
+document.getElementById("score").innerText=0;
 
-document.getElementById("moves").innerText=moves;
+document.getElementById("moves").innerText=15;
 
 document.getElementById("popup").style.display="none";
 
